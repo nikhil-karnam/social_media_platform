@@ -28,7 +28,9 @@ func SignupBatch(users, emails []string) bool {
 	for i := range users {
 		values = append(values, users[i], emails[i])
 	}
-	query := "INSERT INTO users (username, email) VALUES" + strings.Repeat(" (?, ?),", len(users))
+	query := "INSERT INTO users (username, email) VALUES" +
+			 strings.TrimSuffix(strings.Repeat(" (?, ?),", len(users)), ",") +
+			 " ON DUPLICATE KEY UPDATE username = username"
 
 	_, err := connections.Mysql.ExecContext(c, strings.TrimSuffix(query, ","), values...)
 	return err == nil
