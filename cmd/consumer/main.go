@@ -2,9 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"strings"
+	"time"
 
+	"github.com/redis/go-redis/v9"
 	"github.com/segmentio/kafka-go"
 	"twitter_clone/connections"
 	"twitter_clone/functionality"
@@ -26,17 +29,31 @@ func main() {
 		var mail connections.Mail
 		//unmarshal just to find the followers to send the mail to
 		json.Unmarshal(msg.Value, &mail)
-		pipe := connections.Redis.Pipeline()
+		key := fmt.Sprintf("delivered:%s:%020d", mail.User, mail.Time)
 
-		for _, follower := range functionality.GetFollowers(mail.User) {
-			pipe.RPush(connections.Ctx, "mailbox:"+follower, msg.Value)
-			pipe.LTrim(connections.Ctx, "mailbox:"+follower, -20, -1)
-		}
+		//watch the key: if another worker saves it first, our pipeline gets cancelled
+		err := connections.Redis.Watch(connections.Ctx, func(tx *redis.Tx) error {
+			//already delivered, skip it
+			if tx.Exists(connections.Ctx, key).Val() == 1 {
+				return nil
+			}
 
-		//if redis is down, take the consumer down with it!
-		if _, err := pipe.Exec(connections.Ctx); err != nil {
+			pipe := tx.TxPipeline()
+			for _, follower := range functionality.GetFollowers(mail.User) {
+				pipe.RPush(connections.Ctx, "mailbox:"+follower, msg.Value)
+				pipe.LTrim(connections.Ctx, "mailbox:"+follower, -20, -1)
+			}
+			pipe.Set(connections.Ctx, key, 1, 24*time.Hour)
+
+			_, err := pipe.Exec(connections.Ctx)
+			return err
+		}, key)
+
+		//quit only if redis is down and if the cause is not due to the optimistic lock
+		if err != nil && err != redis.TxFailedErr {
 			return
 		}
+		
 		//only move the checkpoint once every mailbox got the tweet
 		reader.CommitMessages(connections.Ctx, msg)
 	}

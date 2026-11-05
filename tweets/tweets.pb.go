@@ -405,6 +405,50 @@ func (x *PutBatchRequest) GetKvs() []*KV {
 	return nil
 }
 
+type DeleteRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Key           []byte                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteRequest) Reset() {
+	*x = DeleteRequest{}
+	mi := &file_tweets_tweets_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteRequest) ProtoMessage() {}
+
+func (x *DeleteRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_tweets_tweets_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteRequest.ProtoReflect.Descriptor instead.
+func (*DeleteRequest) Descriptor() ([]byte, []int) {
+	return file_tweets_tweets_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *DeleteRequest) GetKey() []byte {
+	if x != nil {
+		return x.Key
+	}
+	return nil
+}
+
 var File_tweets_tweets_proto protoreflect.FileDescriptor
 
 const file_tweets_tweets_proto_rawDesc = "" +
@@ -434,14 +478,17 @@ const file_tweets_tweets_proto_rawDesc = "" +
 	".tweets.KVR\x02kv\"/\n" +
 	"\x0fPutBatchRequest\x12\x1c\n" +
 	"\x03kvs\x18\x01 \x03(\v2\n" +
-	".tweets.KVR\x03kvs2\xf4\x01\n" +
+	".tweets.KVR\x03kvs\"!\n" +
+	"\rDeleteRequest\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\fR\x03key2\xa7\x02\n" +
 	"\x06Tweets\x12+\n" +
 	"\x03Put\x12\x12.tweets.PutRequest\x1a\x10.tweets.PutReply\x12+\n" +
 	"\x03Get\x12\x12.tweets.GetRequest\x1a\x10.tweets.GetReply\x12)\n" +
 	"\x04Scan\x12\x13.tweets.ScanRequest\x1a\n" +
 	".tweets.KV0\x01\x12.\n" +
 	"\x04Last\x12\x13.tweets.ScanRequest\x1a\x11.tweets.LastReply\x125\n" +
-	"\bPutBatch\x12\x17.tweets.PutBatchRequest\x1a\x10.tweets.PutReplyB\x16Z\x14twitter_clone/tweetsb\x06proto3"
+	"\bPutBatch\x12\x17.tweets.PutBatchRequest\x1a\x10.tweets.PutReply\x121\n" +
+	"\x06Delete\x12\x15.tweets.DeleteRequest\x1a\x10.tweets.PutReplyB\x16Z\x14twitter_clone/tweetsb\x06proto3"
 
 var (
 	file_tweets_tweets_proto_rawDescOnce sync.Once
@@ -455,7 +502,7 @@ func file_tweets_tweets_proto_rawDescGZIP() []byte {
 	return file_tweets_tweets_proto_rawDescData
 }
 
-var file_tweets_tweets_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_tweets_tweets_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_tweets_tweets_proto_goTypes = []any{
 	(*PutRequest)(nil),      // 0: tweets.PutRequest
 	(*PutReply)(nil),        // 1: tweets.PutReply
@@ -465,6 +512,7 @@ var file_tweets_tweets_proto_goTypes = []any{
 	(*KV)(nil),              // 5: tweets.KV
 	(*LastReply)(nil),       // 6: tweets.LastReply
 	(*PutBatchRequest)(nil), // 7: tweets.PutBatchRequest
+	(*DeleteRequest)(nil),   // 8: tweets.DeleteRequest
 }
 var file_tweets_tweets_proto_depIdxs = []int32{
 	5, // 0: tweets.LastReply.kv:type_name -> tweets.KV
@@ -474,13 +522,15 @@ var file_tweets_tweets_proto_depIdxs = []int32{
 	4, // 4: tweets.Tweets.Scan:input_type -> tweets.ScanRequest
 	4, // 5: tweets.Tweets.Last:input_type -> tweets.ScanRequest
 	7, // 6: tweets.Tweets.PutBatch:input_type -> tweets.PutBatchRequest
-	1, // 7: tweets.Tweets.Put:output_type -> tweets.PutReply
-	3, // 8: tweets.Tweets.Get:output_type -> tweets.GetReply
-	5, // 9: tweets.Tweets.Scan:output_type -> tweets.KV
-	6, // 10: tweets.Tweets.Last:output_type -> tweets.LastReply
-	1, // 11: tweets.Tweets.PutBatch:output_type -> tweets.PutReply
-	7, // [7:12] is the sub-list for method output_type
-	2, // [2:7] is the sub-list for method input_type
+	8, // 7: tweets.Tweets.Delete:input_type -> tweets.DeleteRequest
+	1, // 8: tweets.Tweets.Put:output_type -> tweets.PutReply
+	3, // 9: tweets.Tweets.Get:output_type -> tweets.GetReply
+	5, // 10: tweets.Tweets.Scan:output_type -> tweets.KV
+	6, // 11: tweets.Tweets.Last:output_type -> tweets.LastReply
+	1, // 12: tweets.Tweets.PutBatch:output_type -> tweets.PutReply
+	1, // 13: tweets.Tweets.Delete:output_type -> tweets.PutReply
+	8, // [8:14] is the sub-list for method output_type
+	2, // [2:8] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
 	2, // [2:2] is the sub-list for extension extendee
 	0, // [0:2] is the sub-list for field type_name
@@ -497,7 +547,7 @@ func file_tweets_tweets_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tweets_tweets_proto_rawDesc), len(file_tweets_tweets_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

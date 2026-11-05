@@ -52,6 +52,8 @@ var Producer = &kafka.Writer{
 	Addr:         kafka.TCP(strings.Split(os.Getenv("KAFKA_ADDRS"), ",")...),
 	Topic:        "fanout",
 	BatchTimeout: 10 * time.Millisecond,
+	// so the same key goes to the same producer
+	Balancer:     &kafka.Hash{},
 }
 //don't spam retry when redis is clearly down
 var Redis = redis.NewClient(&redis.Options{Addr: os.Getenv("REDIS_ADDR"), MaxRetries: -1})

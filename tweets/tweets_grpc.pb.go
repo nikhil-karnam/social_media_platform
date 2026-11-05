@@ -24,6 +24,7 @@ const (
 	Tweets_Scan_FullMethodName     = "/tweets.Tweets/Scan"
 	Tweets_Last_FullMethodName     = "/tweets.Tweets/Last"
 	Tweets_PutBatch_FullMethodName = "/tweets.Tweets/PutBatch"
+	Tweets_Delete_FullMethodName   = "/tweets.Tweets/Delete"
 )
 
 // TweetsClient is the client API for Tweets service.
@@ -35,6 +36,7 @@ type TweetsClient interface {
 	Scan(ctx context.Context, in *ScanRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[KV], error)
 	Last(ctx context.Context, in *ScanRequest, opts ...grpc.CallOption) (*LastReply, error)
 	PutBatch(ctx context.Context, in *PutBatchRequest, opts ...grpc.CallOption) (*PutReply, error)
+	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*PutReply, error)
 }
 
 type tweetsClient struct {
@@ -104,6 +106,16 @@ func (c *tweetsClient) PutBatch(ctx context.Context, in *PutBatchRequest, opts .
 	return out, nil
 }
 
+func (c *tweetsClient) Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*PutReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PutReply)
+	err := c.cc.Invoke(ctx, Tweets_Delete_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // TweetsServer is the server API for Tweets service.
 // All implementations must embed UnimplementedTweetsServer
 // for forward compatibility.
@@ -113,6 +125,7 @@ type TweetsServer interface {
 	Scan(*ScanRequest, grpc.ServerStreamingServer[KV]) error
 	Last(context.Context, *ScanRequest) (*LastReply, error)
 	PutBatch(context.Context, *PutBatchRequest) (*PutReply, error)
+	Delete(context.Context, *DeleteRequest) (*PutReply, error)
 	mustEmbedUnimplementedTweetsServer()
 }
 
@@ -137,6 +150,9 @@ func (UnimplementedTweetsServer) Last(context.Context, *ScanRequest) (*LastReply
 }
 func (UnimplementedTweetsServer) PutBatch(context.Context, *PutBatchRequest) (*PutReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method PutBatch not implemented")
+}
+func (UnimplementedTweetsServer) Delete(context.Context, *DeleteRequest) (*PutReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method Delete not implemented")
 }
 func (UnimplementedTweetsServer) mustEmbedUnimplementedTweetsServer() {}
 func (UnimplementedTweetsServer) testEmbeddedByValue()                {}
@@ -242,6 +258,24 @@ func _Tweets_PutBatch_Handler(srv interface{}, ctx context.Context, dec func(int
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Tweets_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TweetsServer).Delete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Tweets_Delete_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TweetsServer).Delete(ctx, req.(*DeleteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Tweets_ServiceDesc is the grpc.ServiceDesc for Tweets service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -264,6 +298,10 @@ var Tweets_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PutBatch",
 			Handler:    _Tweets_PutBatch_Handler,
+		},
+		{
+			MethodName: "Delete",
+			Handler:    _Tweets_Delete_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

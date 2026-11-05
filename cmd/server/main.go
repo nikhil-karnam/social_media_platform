@@ -8,7 +8,7 @@ import (
 
 	"github.com/cockroachdb/pebble"
 	"google.golang.org/grpc"
-
+	"twitter_clone/functionality"
 	pb "twitter_clone/tweets"
 )
 
@@ -19,6 +19,10 @@ type server struct {
 
 func (s *server) Put(ctx context.Context, req *pb.PutRequest) (*pb.PutReply, error) {
 	return &pb.PutReply{}, s.db.Set(req.Key, req.Value, pebble.Sync)
+}
+
+func (s *server) Delete(ctx context.Context, req *pb.DeleteRequest) (*pb.PutReply, error) {
+	return &pb.PutReply{}, s.db.Delete(req.Key, pebble.Sync)
 }
 
 func (s *server) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetReply, error) {
@@ -59,10 +63,12 @@ func (s *server) Last(ctx context.Context, req *pb.ScanRequest) (*pb.LastReply, 
 
 // usage: go run ./cmd/server data/tweets0 :50051
 func main() {
-	db, _ := pebble.Open(os.Args[1], &pebble.Options{})
-	defer db.Close()
-	lis, _ := net.Listen("tcp", os.Args[2])
-	s := grpc.NewServer()
-	pb.RegisterTweetsServer(s, &server{db: db})
-	s.Serve(lis)
+	lsm, _ := pebble.Open(os.Args[1], &pebble.Options{})
+	defer lsm.Close()
+	listener, _ := net.Listen("tcp", os.Args[2])
+	network := grpc.NewServer()
+	tweets := &server{db: lsm}
+	go functionality.SendOutbox(lsm)
+	pb.RegisterTweetsServer(network, tweets)
+	network.Serve(listener)
 }

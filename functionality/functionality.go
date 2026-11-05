@@ -10,9 +10,11 @@ import (
 	"time"
 	"strings"
 
+	"github.com/cockroachdb/pebble"
 	"github.com/segmentio/kafka-go"
 	"twitter_clone/connections"
 	pb "twitter_clone/tweets"
+
 )
 
 
@@ -78,56 +80,82 @@ func Tweet(user, tweet string) {
 		return
 	}
 
+	// build a batch to write to LSM (outbox) containing the actual tweet entry and the mail
+	key := user + ":" + fmt.Sprintf("%020d", now.UnixNano())
+	kvs := []*pb.KV{{
+		Key:   []byte(key),
+		Value: []byte(tweet),
+	}}
+	if !IsCeleb(user) {
+		mail, _ := json.Marshal(connections.Mail{User: user, Tweet: tweet, Time: now.UnixNano()})
+		kvs = append(kvs, &pb.KV{Key: []byte("outbox:" + key), Value: mail})
+	}
+
 	results := make(chan error, 3)
 	for _, db := range connections.Tweets {
-		//write to all 3 dbs at once
+		// write to all 3 dbs at once
 		go func(db pb.TweetsClient) {
-			_, err := db.Put(connections.Ctx, &pb.PutRequest{
-				Key:   []byte(user + ":" + fmt.Sprintf("%020d", now.UnixNano())),
-				Value: []byte(tweet),
-			})
+			_, err := db.PutBatch(connections.Ctx, &pb.PutBatchRequest{Kvs: kvs})
 			results <- err
 		}(db)
 	}
-	//leaderless: move on once any one server has the tweet, repair catches up the rest
 	for i := 0; i < 3; i++ {
 		if <-results == nil {
 			break
 		}
 	}
+}
 
-	if !IsCeleb(user) {
-		mail, _ := json.Marshal(connections.Mail{User: user, Tweet: tweet, Time: now.UnixNano()})
-		connections.Producer.WriteMessages(connections.Ctx, kafka.Message{Value: mail})
+// sending outbox to kafka
+func SendOutbox(db *pebble.DB) {
+	for {
+		iter, _ := db.NewIter(&pebble.IterOptions{LowerBound: []byte("outbox:"), UpperBound: []byte("outbox;")})
+		for iter.First(); iter.Valid(); iter.Next() {
+			var mail connections.Mail
+			json.Unmarshal(iter.Value(), &mail)
+			
+			err := connections.Producer.WriteMessages(connections.Ctx, kafka.Message{
+				Key:   []byte(mail.User),
+				Value: slices.Clone(iter.Value()),
+			})
+			if err == nil {
+				db.Delete(slices.Clone(iter.Key()), pebble.Sync)
+			}
+		}
+		iter.Close()
+		time.Sleep(time.Second)
 	}
 }
 
 func Repair() {
 	//using an in memory map to save repeated reads to the disk
 	all := map[string][]byte{}
-	var ramCopies [3]map[string]bool
+
+	var inMemory [3]map[string]bool
 	for i := range connections.Tweets {
-		ramCopies[i] = map[string]bool{}
-		stream, err := connections.Tweets[i].Scan(connections.Ctx, &pb.ScanRequest{})
-		if err != nil {
-			continue
-		}
-		for {
-			kv, err := stream.Recv()
+		inMemory[i] = map[string]bool{}
+		//outbox keys all sit between "outbox:" and "outbox;", so read everything before and after that block
+		for _, part := range []*pb.ScanRequest{{Upper: []byte("outbox:")}, {Lower: []byte("outbox;")}} {
+			stream, err := connections.Tweets[i].Scan(connections.Ctx, part)
 			if err != nil {
-				break
+				continue
 			}
-			all[string(kv.Key)] = kv.Value
-			ramCopies[i][string(kv.Key)] = true
+			for {
+				kv, err := stream.Recv()
+				if err != nil {
+					break
+				}
+				all[string(kv.Key)] = kv.Value
+				inMemory[i][string(kv.Key)] = true
+			}
 		}
 	}
-	//for each of the 3 copies we turned into maps in memory
+	//for each of the 3 in memory copies
 	for i := range connections.Tweets {
-		//if it's missing from the master map, batch it and add the batch to disk
-		//batch saves repeated writes to the disk
+		//batch whatever is missing from the master map
 		var missing []*pb.KV
 		for key, value := range all {
-			if !ramCopies[i][key] {
+			if !inMemory[i][key] {
 				missing = append(missing, &pb.KV{Key: []byte(key), Value: value})
 			}
 		}

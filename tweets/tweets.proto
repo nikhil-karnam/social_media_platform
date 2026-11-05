@@ -10,6 +10,7 @@ service Tweets {
   rpc Scan(ScanRequest) returns (stream KV);
   rpc Last(ScanRequest) returns (LastReply);
   rpc PutBatch(PutBatchRequest) returns (PutReply);
+  rpc Delete(DeleteRequest) returns (PutReply);
 }
 
 message PutRequest {
@@ -43,4 +44,8 @@ message LastReply {
 
 message PutBatchRequest {
   repeated KV kvs = 1;
+}
+
+message DeleteRequest {
+  bytes key = 1;
 }
