@@ -1,5 +1,5 @@
-Social Media Platform\
-Written in Go with hybrid fan-out, replicated LSM storage (Pebble) and MySQL, and a Redis feed cache. Inspired by Twitter's architecture.
+### Social Media Platform
+Written in Go with hybrid fan-out, replicated LSM storage (Pebble) and MySQL, a Redis feed cache with Kafka's throughput. Inspired by Twitter's architecture.
 
 ---
 
