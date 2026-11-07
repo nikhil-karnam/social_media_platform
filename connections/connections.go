@@ -30,7 +30,7 @@ func Connect(addr string) pb.TweetsClient {
 }
 //connects to one mysql node by address
 func Open(addr string) *sql.DB {
-	db, _ := sql.Open("mysql", "root:"+os.Getenv("MYSQL_PASSWORD")+"@tcp("+addr+")/twitter")
+	db, _ := sql.Open("mysql", os.Getenv("MYSQL_USER")+":"+os.Getenv("MYSQL_PASSWORD")+"@tcp("+addr+")/"+os.Getenv("MYSQL_DB"))
 	return db
 }
 
@@ -50,7 +50,7 @@ var Tweets = [3]pb.TweetsClient{
 //kafka waits to send in batches, default is 1 second wait. change this so a stream of tweets don't wait on each other.
 var Producer = &kafka.Writer{
 	Addr:         kafka.TCP(strings.Split(os.Getenv("KAFKA_ADDRS"), ",")...),
-	Topic:        "fanout",
+	Topic:        os.Getenv("KAFKA_TOPIC"),
 	BatchTimeout: 10 * time.Millisecond,
 	// so the same key goes to the same producer
 	Balancer:     &kafka.Hash{},

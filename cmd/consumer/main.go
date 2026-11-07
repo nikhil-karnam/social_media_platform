@@ -17,8 +17,8 @@ import (
 func main() {
 	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers: strings.Split(os.Getenv("KAFKA_ADDRS"), ","),
-		Topic:   "fanout",
-		GroupID: "fanout-consumers",
+		Topic:   os.Getenv("KAFKA_TOPIC"),
+		GroupID: os.Getenv("KAFKA_GROUP"),
 	})
 	defer reader.Close()
 

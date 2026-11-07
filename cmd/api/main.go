@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"net"
+	"os"
 	"sync"
 
 	"google.golang.org/grpc"
@@ -67,7 +68,7 @@ func (s *server) Repair(ctx context.Context, req *pb.Empty) (*pb.Empty, error) {
 }
 
 func main() {
-	lis, _ := net.Listen("tcp", ":50051")
+	lis, _ := net.Listen("tcp", os.Getenv("API_ADDR"))
 	s := grpc.NewServer()
 	pb.RegisterApiServer(s, &server{})
 	s.Serve(lis)

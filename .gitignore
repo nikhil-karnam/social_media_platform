@@ -1,4 +1,2 @@
-terraform/.terraform/
-terraform/*.tfstate*
-terraform-web/.terraform/
-terraform-web/node.zip
+data/
+dump.rdb
