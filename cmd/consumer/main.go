@@ -43,7 +43,8 @@ func main() {
 				pipe.RPush(connections.Ctx, "mailbox:"+follower, msg.Value)
 				pipe.LTrim(connections.Ctx, "mailbox:"+follower, -20, -1)
 			}
-			pipe.Set(connections.Ctx, key, 1, 24*time.Hour)
+			// set the value of the idempotency key as how long it took to deliver
+			pipe.Set(connections.Ctx, key, time.Since(msg.Time).Nanoseconds(), 24*time.Hour)
 
 			_, err := pipe.Exec(connections.Ctx)
 			return err

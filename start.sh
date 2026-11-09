@@ -85,4 +85,12 @@ done
 
 # 12. api
 setsid go run ./cmd/api &
+
+# 13. wait until the api is taking calls
+until (exec 3<>/dev/tcp/127.0.0.1/"$(port "$API_ADDR")") 2>/dev/null; do sleep 1; done
+
+# 14. wait until all consumers have joined kafka
+until [ "$(kafka-consumer-groups.sh --bootstrap-server "$KAFKA_ADDRS" --describe --group "$KAFKA_GROUP" --state 2>/dev/null \
+  | awk '/Stable/ {print $NF}')" = "$LANES" ]; do sleep 1; done
+
 echo "start complete!"
