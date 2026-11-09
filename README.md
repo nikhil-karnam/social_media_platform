@@ -15,7 +15,27 @@ To prevent data loss, I replicated both posts and user data. The idea is that if
 
 ---
 
-To setup and run:
+### Results
+
+10K users, 10 celebrities (10K followers each), 1.1M follows. 1,010 tweets per burst.
+
+| Strategy | Feed fetch p99 | Delivery p99 |
+|---|---|---|
+| Fan out to everyone | 24.15 ms | 186.45 ms |
+| Fan out to nobody | 336.11 ms | 0 ms |
+| **Hybrid** | **47.11 ms** | **13.45 ms** |
+
+Hybrid achieves **92.6%** of optimal read and **92.8%** of optimal write performance,
+where % = (hybrid − worst) / (optimal − worst).
+
+| Kafka consumers | Delivery throughput |
+|---|---|
+| 1 | 249 tweets/s |
+| 4 | 649 tweets/s (**2.6x**) |
+
+---
+
+### To setup and run:
 
 Install [Go](https://go.dev/dl/), Java 17+, [Redis](https://redis.io/downloads/), [MySQL 8.4](https://dev.mysql.com/downloads/mysql/), and [Kafka 4.3](https://kafka.apache.org/downloads) with their `bin` folders on your `PATH`. Then run `./start.sh` from the project folder.
 
