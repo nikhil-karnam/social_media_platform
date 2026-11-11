@@ -35,6 +35,8 @@ where % = (hybrid − worst) / (optimal − worst).
 | 1 | 249 tweets/s |
 | 4 | 649 tweets/s (**2.6x**) |
 
+Added a secondary index to cut p99 follower-fetch latency from 3.83 s to 132 ms (29x), and denormalized the schema with a column for follower count to cut p99 popularity-check latency from 26.8 ms to 14.7 ms (1.8x).
+
 ---
 
 ### To setup and run:
