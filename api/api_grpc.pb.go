@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             v3.21.12
-// source: api/api.proto
+// source: api.proto
 
 package api
 
@@ -28,6 +28,8 @@ const (
 	Api_Repair_FullMethodName           = "/api.Api/Repair"
 	Api_OpenMail_FullMethodName         = "/api.Api/OpenMail"
 	Api_GetProfile_FullMethodName       = "/api.Api/GetProfile"
+	Api_GetFollowers_FullMethodName     = "/api.Api/GetFollowers"
+	Api_GetFollowerCount_FullMethodName = "/api.Api/GetFollowerCount"
 )
 
 // ApiClient is the client API for Api service.
@@ -43,6 +45,8 @@ type ApiClient interface {
 	Repair(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Empty, error)
 	OpenMail(ctx context.Context, in *Username, opts ...grpc.CallOption) (*Timeline, error)
 	GetProfile(ctx context.Context, in *Username, opts ...grpc.CallOption) (*Timeline, error)
+	GetFollowers(ctx context.Context, in *Username, opts ...grpc.CallOption) (*Followers, error)
+	GetFollowerCount(ctx context.Context, in *Username, opts ...grpc.CallOption) (*FollowerCount, error)
 }
 
 type apiClient struct {
@@ -143,6 +147,26 @@ func (c *apiClient) GetProfile(ctx context.Context, in *Username, opts ...grpc.C
 	return out, nil
 }
 
+func (c *apiClient) GetFollowers(ctx context.Context, in *Username, opts ...grpc.CallOption) (*Followers, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Followers)
+	err := c.cc.Invoke(ctx, Api_GetFollowers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *apiClient) GetFollowerCount(ctx context.Context, in *Username, opts ...grpc.CallOption) (*FollowerCount, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FollowerCount)
+	err := c.cc.Invoke(ctx, Api_GetFollowerCount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ApiServer is the server API for Api service.
 // All implementations must embed UnimplementedApiServer
 // for forward compatibility.
@@ -156,6 +180,8 @@ type ApiServer interface {
 	Repair(context.Context, *Empty) (*Empty, error)
 	OpenMail(context.Context, *Username) (*Timeline, error)
 	GetProfile(context.Context, *Username) (*Timeline, error)
+	GetFollowers(context.Context, *Username) (*Followers, error)
+	GetFollowerCount(context.Context, *Username) (*FollowerCount, error)
 	mustEmbedUnimplementedApiServer()
 }
 
@@ -192,6 +218,12 @@ func (UnimplementedApiServer) OpenMail(context.Context, *Username) (*Timeline, e
 }
 func (UnimplementedApiServer) GetProfile(context.Context, *Username) (*Timeline, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetProfile not implemented")
+}
+func (UnimplementedApiServer) GetFollowers(context.Context, *Username) (*Followers, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetFollowers not implemented")
+}
+func (UnimplementedApiServer) GetFollowerCount(context.Context, *Username) (*FollowerCount, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetFollowerCount not implemented")
 }
 func (UnimplementedApiServer) mustEmbedUnimplementedApiServer() {}
 func (UnimplementedApiServer) testEmbeddedByValue()             {}
@@ -376,6 +408,42 @@ func _Api_GetProfile_Handler(srv interface{}, ctx context.Context, dec func(inte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Api_GetFollowers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Username)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ApiServer).GetFollowers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Api_GetFollowers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ApiServer).GetFollowers(ctx, req.(*Username))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Api_GetFollowerCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Username)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ApiServer).GetFollowerCount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Api_GetFollowerCount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ApiServer).GetFollowerCount(ctx, req.(*Username))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Api_ServiceDesc is the grpc.ServiceDesc for Api service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -419,7 +487,15 @@ var Api_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "GetProfile",
 			Handler:    _Api_GetProfile_Handler,
 		},
+		{
+			MethodName: "GetFollowers",
+			Handler:    _Api_GetFollowers_Handler,
+		},
+		{
+			MethodName: "GetFollowerCount",
+			Handler:    _Api_GetFollowerCount_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "api/api.proto",
+	Metadata: "api.proto",
 }

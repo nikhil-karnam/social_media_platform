@@ -175,6 +175,8 @@ func UserExists(user string) bool {
 func GetFollowerCount(user string) int {
 	var count int
 	connections.Mysql.QueryRow("SELECT follower_count FROM users WHERE username = ?", user).Scan(&count)
+	//the naive query
+	//connections.Mysql.QueryRow("SELECT COUNT(*) FROM follows WHERE target = ?", user).Scan(&count)
 	return count
 }
 
@@ -183,8 +185,12 @@ func IsCeleb(user string) bool {
 }
 
 func GetFollowers(user string) []string {
-	var followers []string
 	rows, _ := connections.Mysql.Query("SELECT user FROM follows WHERE target = ?", user)
+	//the naive query
+	//rows, _ := connections.Mysql.Query("SELECT user FROM follows IGNORE INDEX (target) WHERE target = ?", user)
+	
+	// converts from mysql rows to go list
+	var followers []string
 	for rows.Next() {
 		var follower string
 		rows.Scan(&follower)

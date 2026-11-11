@@ -14,6 +14,8 @@ service Api {
   rpc Repair(Empty) returns (Empty);
   rpc OpenMail(Username) returns (Timeline);
   rpc GetProfile(Username) returns (Timeline);
+  rpc GetFollowers(Username) returns (Followers);
+  rpc GetFollowerCount(Username) returns (FollowerCount);
 }
 
 message Accounts {
@@ -36,5 +38,11 @@ message Username {
 }
 message Timeline {
   repeated string tweets = 1;
+}
+message Followers {
+  repeated string users = 1;
+}
+message FollowerCount {
+  int64 count = 1;
 }
 message Empty {}
