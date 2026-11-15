@@ -41,7 +41,7 @@ Added a secondary index to cut p99 follower-fetch latency from 3.83 s to 132 ms 
 
 ### To setup and run:
 
-Install [Go](https://go.dev/dl/), Java 17+, [Redis](https://redis.io/downloads/), [MySQL 8.4](https://dev.mysql.com/downloads/mysql/), and [Kafka 4.3](https://kafka.apache.org/downloads) with their `bin` folders on your `PATH`. Then run `./start.sh` from the project folder.
+Install [Go](https://go.dev/dl/), Java 17, [Redis](https://redis.io/downloads/), [MySQL 8.4](https://dev.mysql.com/downloads/mysql/), [Kafka 4.3](https://kafka.apache.org/downloads), and [Cassandra 5.0](https://cassandra.apache.org/_/download.html) with their `bin` folders on your `PATH`. Then run `./start.sh` from the project folder.
 
 To stop:
 Run `./stop.sh`. Stopping does not delete the stored post and user data.
