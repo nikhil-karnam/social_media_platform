@@ -45,3 +45,5 @@ On Linux, install [Go](https://go.dev/dl/), Java 17 (through your package manage
 
 To stop:
 Run `./stop.sh`. Stopping does not delete the stored post and user data.
+
+Both start and stop should take around a minute to finish.
