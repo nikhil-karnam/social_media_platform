@@ -48,4 +48,4 @@ Run `./stop.sh`. Stopping does not delete the stored post and user data.
 
 Both start and stop should take around a minute to finish.
 
-I used ghz and sent commands to the gRPC API to run performance benchmarks.
+I used ghz and sent commands to a gRPC API that calls functions to run performance benchmarks.
