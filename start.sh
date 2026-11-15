@@ -10,8 +10,8 @@ if ! redis-cli -p "$(port "$REDIS_ADDR")" ping > /dev/null 2>&1; then
   redis-server --port "$(port "$REDIS_ADDR")" --daemonize yes
 fi
 
-# 2. lsm data folders
-mkdir -p data/tweets0 data/tweets1 data/tweets2
+# 2. cassandra data folders
+mkdir -p data/cassandra1 data/cassandra2 data/cassandra3
 
 # 3. mysql data folders
 for n in 1 2 3; do
@@ -27,13 +27,22 @@ if [ ! -f data/kafka/meta.properties ]; then
   kafka-storage.sh format --standalone -t "$(kafka-storage.sh random-uuid)" -c data/kafka.properties
 fi
 
-# 5. grpc tweet nodes
-for i in 0 1 2; do
-  addr_var="TWEET${i}_ADDR"
-  setsid go run ./cmd/server "data/tweets$i" ":$(port "${!addr_var}")" &
+# 5. cassandra nodes, one at a time, each with its own ports
+for n in 1 2 3; do
+  JAVA_HOME="$CASSANDRA_JAVA_HOME" MAX_HEAP_SIZE=512M HEAP_NEWSIZE=128M setsid cassandra -f \
+    -Dcassandra.storagedir="$PWD/data/cassandra$n" \
+    -Dcassandra.logdir="$PWD/data/cassandra$n/logs" \
+    -Dcassandra.storage_port=$((7000 + n - 1)) \
+    -Dcassandra.native_transport_port=$((9042 + n - 1)) \
+    -Dcassandra.jmx.local.port=$((7199 + (n - 1) * 100)) \
+    -Dcassandra.ring_delay_ms=5000 > /dev/null 2>&1 &
+  until (exec 3<>/dev/tcp/127.0.0.1/$((9042 + n - 1))) 2>/dev/null; do sleep 1; done
 done
 
-# 6. mysql nodes
+# 6. load cassandra schema
+cqlsh 127.0.0.1 9042 -f schema.cql
+
+# 7. mysql nodes
 base=$(port "$MYSQL_ADDR")
 for n in 1 2 3; do
   mysqld \
@@ -56,7 +65,7 @@ for n in 1 2 3; do
   until mysqladmin -uroot --socket="$PWD/data/mysql$n.sock" ping > /dev/null 2>&1; do sleep 1; done
 done
 
-# 7. link them with group replication
+# 8. link them with group replication
 RPL="SET SQL_LOG_BIN=0;
 CREATE USER IF NOT EXISTS rpl_user@'%' IDENTIFIED BY 'rpl_pass';
 GRANT REPLICATION SLAVE, CONNECTION_ADMIN, BACKUP_ADMIN, GROUP_REPLICATION_STREAM ON *.* TO rpl_user@'%';
@@ -67,29 +76,29 @@ until [ "$(sql 1 "SELECT COUNT(*) FROM performance_schema.replication_group_memb
 sql 2 "$RPL START GROUP_REPLICATION;"
 sql 3 "$RPL START GROUP_REPLICATION;"
 
-# 8. load schema
+# 9. load schema
 mysql -uroot --socket="$PWD/data/mysql1.sock" < schema.sql
 
-# 9. start kafka
-setsid kafka-server-start.sh data/kafka.properties &
+# 10. start kafka
+setsid kafka-server-start.sh data/kafka.properties > /dev/null 2>&1 &
 until kafka-topics.sh --bootstrap-server "$KAFKA_ADDRS" --list > /dev/null 2>&1; do sleep 1; done
 
-# 10. fanout topic with LANES partitions
+# 11. fanout topic with LANES partitions
 kafka-topics.sh --bootstrap-server "$KAFKA_ADDRS" --create --if-not-exists \
   --topic "$KAFKA_TOPIC" --partitions "$LANES" --replication-factor 1
 
-# 11. LANES consumers
+# 12. LANES consumers
 for i in $(seq 1 "$LANES"); do
   setsid go run ./cmd/consumer &
 done
 
-# 12. api
+# 13. api
 setsid go run ./cmd/api &
 
-# 13. wait until the api is taking calls
+# 14. wait until the api is taking calls
 until (exec 3<>/dev/tcp/127.0.0.1/"$(port "$API_ADDR")") 2>/dev/null; do sleep 1; done
 
-# 14. wait until all consumers have joined kafka
+# 15. wait until all consumers have joined kafka
 until [ "$(kafka-consumer-groups.sh --bootstrap-server "$KAFKA_ADDRS" --describe --group "$KAFKA_GROUP" --state 2>/dev/null \
   | awk '/Stable/ {print $NF}')" = "$LANES" ]; do sleep 1; done
 

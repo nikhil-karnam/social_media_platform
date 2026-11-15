@@ -22,11 +22,6 @@ func (s *server) Signup(ctx context.Context, req *pb.Accounts) (*pb.Empty, error
 	return &pb.Empty{}, nil
 }
 
-func (s *server) SignupLeaderless(ctx context.Context, req *pb.Accounts) (*pb.Empty, error) {
-	functionality.SignupLeaderless(req.Users, req.Emails)
-	return &pb.Empty{}, nil
-}
-
 func (s *server) Follow(ctx context.Context, req *pb.Follows) (*pb.Empty, error) {
 	functionality.FollowBatch(req.Users, req.Targets)
 	return &pb.Empty{}, nil
@@ -53,18 +48,9 @@ func (s *server) BurstTweet(ctx context.Context, req *pb.Tweets) (*pb.Empty, err
 	return &pb.Empty{}, nil
 }
 
-func (s *server) Repair(ctx context.Context, req *pb.Empty) (*pb.Empty, error) {
-	functionality.Repair()
-	return &pb.Empty{}, nil
-}
-
 //getters
 func (s *server) OpenMail(ctx context.Context, req *pb.Username) (*pb.Timeline, error) {
 	return &pb.Timeline{Tweets: functionality.OpenMail(req.User)}, nil
-}
-
-func (s *server) GetProfile(ctx context.Context, req *pb.Username) (*pb.Timeline, error) {
-	return &pb.Timeline{Tweets: functionality.GetProfile(req.User)}, nil
 }
 
 func (s *server) GetFollowers(ctx context.Context, req *pb.Username) (*pb.Followers, error) {
@@ -76,6 +62,8 @@ func (s *server) GetFollowerCount(ctx context.Context, req *pb.Username) (*pb.Fo
 }
 
 func main() {
+	go functionality.SendOutbox()
+
 	lis, _ := net.Listen("tcp", os.Getenv("API_ADDR"))
 	s := grpc.NewServer()
 	pb.RegisterApiServer(s, &server{})

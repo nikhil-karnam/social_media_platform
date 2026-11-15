@@ -6,14 +6,11 @@ option go_package = "twitter_clone/api";
 
 service Api {
   rpc Signup(Accounts) returns (Empty);
-  rpc SignupLeaderless(Accounts) returns (Empty);
   rpc Follow(Follows) returns (Empty);
   rpc SetThreshold(Threshold) returns (Empty);
   rpc SequentialTweet(Tweets) returns (Empty);
   rpc BurstTweet(Tweets) returns (Empty);
-  rpc Repair(Empty) returns (Empty);
   rpc OpenMail(Username) returns (Timeline);
-  rpc GetProfile(Username) returns (Timeline);
   rpc GetFollowers(Username) returns (Followers);
   rpc GetFollowerCount(Username) returns (FollowerCount);
 }

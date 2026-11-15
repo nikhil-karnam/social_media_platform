@@ -7,14 +7,12 @@ import (
 	"maps"
 	"slices"
 	"strconv"
-	"time"
 	"strings"
+	"time"
 
-	"github.com/cockroachdb/pebble"
+	"github.com/gocql/gocql"
 	"github.com/segmentio/kafka-go"
 	"twitter_clone/connections"
-	pb "twitter_clone/tweets"
-
 )
 
 
@@ -22,7 +20,7 @@ var CelebThreshold = 1000
 
 
 func SignupBatch(users, emails []string) bool {
-	//if 2+ nodes are down, insert will timeout as it should.
+	//if 2+ nodes are down (no response in 2 seconds), insert will timeout as it should.
 	c, cancel := context.WithTimeout(connections.Ctx, 2*time.Second)
 	defer cancel()
 
@@ -36,24 +34,6 @@ func SignupBatch(users, emails []string) bool {
 
 	_, err := connections.Mysql.ExecContext(c, strings.TrimSuffix(query, ","), values...)
 	return err == nil
-}
-
-//just to see if its faster than leader-based
-func SignupLeaderless(users, emails []string) bool {
-	//blind write to all 3, no check, like a Cassandra INSERT
-	var kvs []*pb.KV
-	for i := range users {
-		kvs = append(kvs, &pb.KV{Key: []byte("email:" + emails[i]), Value: []byte(users[i])})
-	}
-	done := make(chan bool, 3)
-	for _, db := range connections.Tweets {
-		go func(db pb.TweetsClient) {
-			db.PutBatch(connections.Ctx, &pb.PutBatchRequest{Kvs: kvs})
-			done <- true
-		}(db)
-	}
-	<-done
-	return true
 }
 
 func FollowBatch(users, targets []string) {
@@ -74,94 +54,42 @@ func FollowBatch(users, targets []string) {
 }
 
 func Tweet(user, tweet string) {
-	now := time.Now()
+	now := time.Now().UnixNano()
 
 	if !UserExists(user) {
 		return
 	}
 
-	// build a batch to write to LSM (outbox) containing the actual tweet entry and the mail
-	key := user + ":" + fmt.Sprintf("%020d", now.UnixNano())
-	kvs := []*pb.KV{{
-		Key:   []byte(key),
-		Value: []byte(tweet),
-	}}
+	// save the tweet and its outbox mail in one batch: either both land or neither does
+	batch := connections.Cassandra.NewBatch(gocql.LoggedBatch)
+	batch.Query("INSERT INTO posts (username, posted_at, tweet) VALUES (?, ?, ?)", user, now, tweet)
 	if !IsCeleb(user) {
-		mail, _ := json.Marshal(connections.Mail{User: user, Tweet: tweet, Time: now.UnixNano()})
-		kvs = append(kvs, &pb.KV{Key: []byte("outbox:" + key), Value: mail})
+		mail, _ := json.Marshal(connections.Mail{User: user, Tweet: tweet, Time: now})
+		batch.Query("INSERT INTO outbox (username, posted_at, mail) VALUES (?, ?, ?)", user, now, string(mail))
 	}
-
-	results := make(chan error, 3)
-	for _, db := range connections.Tweets {
-		// write to all 3 dbs at once
-		go func(db pb.TweetsClient) {
-			_, err := db.PutBatch(connections.Ctx, &pb.PutBatchRequest{Kvs: kvs})
-			results <- err
-		}(db)
-	}
-	for i := 0; i < 3; i++ {
-		if <-results == nil {
-			break
-		}
-	}
+	connections.Cassandra.ExecuteBatch(batch)
 }
 
 // sending outbox to kafka
-func SendOutbox(db *pebble.DB) {
+func SendOutbox() {
+	// read all 3 replicas. if a node is down, fall back to the ones that are up
 	for {
-		iter, _ := db.NewIter(&pebble.IterOptions{LowerBound: []byte("outbox:"), UpperBound: []byte("outbox;")})
-		for iter.First(); iter.Valid(); iter.Next() {
-			var mail connections.Mail
-			json.Unmarshal(iter.Value(), &mail)
-			
+		iter := connections.Cassandra.Query("SELECT username, posted_at, mail FROM outbox").
+			Consistency(gocql.All).RetryPolicy(connections.Fallback).Iter()
+
+		var user, mail string
+		var postedAt int64
+		for iter.Scan(&user, &postedAt, &mail) {
 			err := connections.Producer.WriteMessages(connections.Ctx, kafka.Message{
-				Key:   []byte(mail.User),
-				Value: slices.Clone(iter.Value()),
+				Key:   []byte(user),
+				Value: []byte(mail),
 			})
 			if err == nil {
-				db.Delete(slices.Clone(iter.Key()), pebble.Sync)
+				connections.Cassandra.Query("DELETE FROM outbox WHERE username = ? AND posted_at = ?", user, postedAt).Exec()
 			}
 		}
 		iter.Close()
-		time.Sleep(time.Second)
-	}
-}
-
-func Repair() {
-	//using an in memory map to save repeated reads to the disk
-	all := map[string][]byte{}
-
-	var inMemory [3]map[string]bool
-	for i := range connections.Tweets {
-		inMemory[i] = map[string]bool{}
-		//outbox keys all sit between "outbox:" and "outbox;", so read everything before and after that block
-		for _, part := range []*pb.ScanRequest{{Upper: []byte("outbox:")}, {Lower: []byte("outbox;")}} {
-			stream, err := connections.Tweets[i].Scan(connections.Ctx, part)
-			if err != nil {
-				continue
-			}
-			for {
-				kv, err := stream.Recv()
-				if err != nil {
-					break
-				}
-				all[string(kv.Key)] = kv.Value
-				inMemory[i][string(kv.Key)] = true
-			}
-		}
-	}
-	//for each of the 3 in memory copies
-	for i := range connections.Tweets {
-		//batch whatever is missing from the master map
-		var missing []*pb.KV
-		for key, value := range all {
-			if !inMemory[i][key] {
-				missing = append(missing, &pb.KV{Key: []byte(key), Value: value})
-			}
-		}
-		if len(missing) > 0 {
-			connections.Tweets[i].PutBatch(connections.Ctx, &pb.PutBatchRequest{Kvs: missing})
-		}
+		time.Sleep(10 * time.Second)
 	}
 }
 
@@ -200,33 +128,16 @@ func GetFollowers(user string) []string {
 	return followers
 }
 
-func GetProfile(target string) []string {
-	//naw screw 3 pointer merge sort. we just put everything into a map from all 3 db and sort
-	all := map[string]string{}
-	for _, db := range connections.Tweets {
-		stream, err := db.Scan(connections.Ctx, &pb.ScanRequest{
-			Lower: []byte(target + ":"),
-			Upper: []byte(target + ";"),
-		})
-		if err != nil {
-			continue
-		}
-		for {
-			kv, err := stream.Recv()
-			if err != nil {
-				break
-			}
-			all[string(kv.Key[len(target+":"):])+":"+target] = string(kv.Value)
-		}
+func GetCelebFollows(user string) []string {
+	rows, _ := connections.Mysql.Query("SELECT f.target FROM follows f JOIN users u ON u.username = f.target WHERE f.user = ? AND u.follower_count >= ?", user, CelebThreshold)
+	var celebs []string
+	for rows.Next() {
+		var celeb string
+		rows.Scan(&celeb)
+		celebs = append(celebs, celeb)
 	}
-
-	var profile []string
-	for _, k := range slices.Backward(slices.Sorted(maps.Keys(all))) {
-		nanos, _ := strconv.ParseInt(k[:20], 10, 64)
-		profile = append(profile, time.Unix(0, nanos).Format("15:04")+" "+k[21:]+": "+all[k])
-	}
-	
-	return profile
+	rows.Close()
+	return celebs
 }
 
 func OpenMail(user string) []string {
@@ -234,49 +145,23 @@ func OpenMail(user string) []string {
 		return nil
 	}
 
-	//keyed by time and user
-	//map automatically deduplicates non-idempotent mail
+	//hashset keyed by time and user, to sort by time first
 	all := map[string]string{}
-	texts, redisErr := connections.Redis.LRange(connections.Ctx, "mailbox:"+user, 0, -1).Result()
+
+	texts, _ := connections.Redis.LRange(connections.Ctx, "mailbox:"+user, 0, -1).Result()
 	for _, text := range texts {
 		var mail connections.Mail
 		json.Unmarshal([]byte(text), &mail)
 		all[fmt.Sprintf("%020d:%s", mail.Time, mail.User)] = mail.Tweet
 	}
 
-	var pull []string
-	rows, _ := connections.Mysql.Query("SELECT f.target, u.follower_count FROM follows f JOIN users u ON u.username = f.target WHERE f.user = ?", user)
-	for rows.Next() {
-		var followee string
-		var count int
-		rows.Scan(&followee, &count)
-		//collect whoever is a celeb or all if redis is down
-		if redisErr != nil || count >= CelebThreshold {
-			pull = append(pull, followee)
-		}
-	}
-	rows.Close()
-
-	for _, followee := range pull {
-		var newest connections.Mail
-		hasTweeted := false
-		//if one db is still recovery we don't know which is latest
-		//check all 3 dbs to determine latest
-		for _, db := range connections.Tweets {
-			reply, err := db.Last(connections.Ctx, &pb.ScanRequest{
-				Lower: []byte(followee + ":"),
-				Upper: []byte(followee + ";"),
-			})
-			if err == nil && reply.Found {
-				nanos, _ := strconv.ParseInt(string(reply.Kv.Key[len(followee+":"):]), 10, 64)
-				if !hasTweeted || nanos > newest.Time {
-					newest = connections.Mail{User: followee, Tweet: string(reply.Kv.Value), Time: nanos}
-					hasTweeted = true
-				}
-			}
-		}
-		if hasTweeted {
-			all[fmt.Sprintf("%020d:%s", newest.Time, newest.User)] = newest.Tweet
+	for _, celeb := range GetCelebFollows(user) {
+		var tweet string
+		var postedAt int64
+		err := connections.Cassandra.Query("SELECT tweet, posted_at FROM posts WHERE username = ? LIMIT 1", celeb).
+			Consistency(gocql.All).RetryPolicy(connections.Fallback).Scan(&tweet, &postedAt)
+		if err == nil {
+			all[fmt.Sprintf("%020d:%s", postedAt, celeb)] = tweet
 		}
 	}
 

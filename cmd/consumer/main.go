@@ -13,8 +13,8 @@ import (
 	"twitter_clone/functionality"
 )
 
-//reads tweets from kafka and delivers them to mailboxes
 func main() {
+	//if this is in connections, any program that loads connections will count as a consumer. hence keep in consumer file only.
 	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers: strings.Split(os.Getenv("KAFKA_ADDRS"), ","),
 		Topic:   os.Getenv("KAFKA_TOPIC"),
