@@ -9,15 +9,15 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"sync"
+
+	"twitter_clone/connections"
 
 	"github.com/gocql/gocql"
 	"github.com/segmentio/kafka-go"
-	"twitter_clone/connections"
 )
 
-
 var CelebThreshold = 1000
-
 
 func SignupBatch(users, emails []string) bool {
 	//if 2+ nodes are down (no response in 2 seconds), insert will timeout as it should.
@@ -29,8 +29,8 @@ func SignupBatch(users, emails []string) bool {
 		values = append(values, users[i], emails[i])
 	}
 	query := "INSERT INTO users (username, email) VALUES" +
-			 strings.TrimSuffix(strings.Repeat(" (?, ?),", len(users)), ",") +
-			 " ON DUPLICATE KEY UPDATE username = username"
+		strings.TrimSuffix(strings.Repeat(" (?, ?),", len(users)), ",") +
+		" ON DUPLICATE KEY UPDATE username = username"
 
 	_, err := connections.Mysql.ExecContext(c, strings.TrimSuffix(query, ","), values...)
 	return err == nil
@@ -72,28 +72,44 @@ func Tweet(user, tweet string) {
 
 // sending outbox to kafka
 func SendOutbox() {
-	// read all 3 replicas. if a node is down, fall back to the ones that are up
+	type row struct {
+		user     string
+		postedAt int64
+	}
+
 	for {
+		// read all 3 replicas. if a node is down, fall back to the ones that are up
 		iter := connections.Cassandra.Query("SELECT username, posted_at, mail FROM outbox").
 			Consistency(gocql.All).RetryPolicy(connections.Fallback).Iter()
 
+		// collect everything waiting in the outbox first
+		var msgs []kafka.Message
+		var rows []row
 		var user, mail string
 		var postedAt int64
 		for iter.Scan(&user, &postedAt, &mail) {
-			err := connections.Producer.WriteMessages(connections.Ctx, kafka.Message{
-				Key:   []byte(user),
-				Value: []byte(mail),
-			})
-			if err == nil {
-				connections.Cassandra.Query("DELETE FROM outbox WHERE username = ? AND posted_at = ?", user, postedAt).Exec()
-			}
+			msgs = append(msgs, kafka.Message{Key: []byte(user), Value: []byte(mail)})
+			rows = append(rows, row{user, postedAt})
 		}
 		iter.Close()
+
+		// send everything in one go. if kafka fails, the mail stays in the outbox and gets retried next loop
+		if len(msgs) > 0 && connections.Producer.WriteMessages(connections.Ctx, msgs...) == nil {
+			// kafka confirmed it all, so delete those rows from the outbox all at once
+			var wg sync.WaitGroup
+			for _, r := range rows {
+				wg.Go(func() {
+					connections.Cassandra.Query("DELETE FROM outbox WHERE username = ? AND posted_at = ?", r.user, r.postedAt).Exec()
+				})
+			}
+			wg.Wait()
+		}
+
 		time.Sleep(10 * time.Second)
 	}
 }
 
-//getters
+// getters
 func UserExists(user string) bool {
 	var n int
 	connections.Mysql.QueryRow("SELECT COUNT(*) FROM users WHERE username = ?", user).Scan(&n)
@@ -116,7 +132,7 @@ func GetFollowers(user string) []string {
 	rows, _ := connections.Mysql.Query("SELECT user FROM follows WHERE target = ?", user)
 	//the naive query
 	//rows, _ := connections.Mysql.Query("SELECT user FROM follows IGNORE INDEX (target) WHERE target = ?", user)
-	
+
 	// converts from mysql rows to go list
 	var followers []string
 	for rows.Next() {

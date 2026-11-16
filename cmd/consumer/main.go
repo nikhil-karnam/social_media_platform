@@ -7,18 +7,21 @@ import (
 	"strings"
 	"time"
 
-	"github.com/redis/go-redis/v9"
-	"github.com/segmentio/kafka-go"
 	"twitter_clone/connections"
 	"twitter_clone/functionality"
+
+	"github.com/redis/go-redis/v9"
+	"github.com/segmentio/kafka-go"
 )
 
 func main() {
 	//if this is in connections, any program that loads connections will count as a consumer. hence keep in consumer file only.
 	reader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers: strings.Split(os.Getenv("KAFKA_ADDRS"), ","),
-		Topic:   os.Getenv("KAFKA_TOPIC"),
-		GroupID: os.Getenv("KAFKA_GROUP"),
+		Brokers:        strings.Split(os.Getenv("KAFKA_ADDRS"), ","),
+		Topic:          os.Getenv("KAFKA_TOPIC"),
+		GroupID:        os.Getenv("KAFKA_GROUP"),
+		//appends bookmarks in memory, sends to disk every second instead of every event
+		CommitInterval: time.Second,
 	})
 	defer reader.Close()
 
@@ -54,7 +57,7 @@ func main() {
 		if err != nil && err != redis.TxFailedErr {
 			return
 		}
-		
+
 		//only move the checkpoint once every mailbox got the tweet
 		reader.CommitMessages(connections.Ctx, msg)
 	}

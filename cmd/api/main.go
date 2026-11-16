@@ -16,7 +16,7 @@ type server struct {
 	pb.UnimplementedApiServer
 }
 
-//setters
+// setters
 func (s *server) Signup(ctx context.Context, req *pb.Accounts) (*pb.Empty, error) {
 	functionality.SignupBatch(req.Users, req.Emails)
 	return &pb.Empty{}, nil
@@ -48,7 +48,7 @@ func (s *server) BurstTweet(ctx context.Context, req *pb.Tweets) (*pb.Empty, err
 	return &pb.Empty{}, nil
 }
 
-//getters
+// getters
 func (s *server) OpenMail(ctx context.Context, req *pb.Username) (*pb.Timeline, error) {
 	return &pb.Timeline{Tweets: functionality.OpenMail(req.User)}, nil
 }
