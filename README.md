@@ -48,4 +48,4 @@ Run `./stop.sh`. Stopping does not delete the stored post and user data.
 
 Both start and stop should take around a minute to finish.
 
-I used ghz and sent commands to a gRPC API that calls functions to run performance benchmarks. The sign-ups and follow calls work, but it's slow when you have to populate 100K users and 15M follows relationships quickly. I used MySQL terminal directly for this. 100K users, 100 celebrities, each user follows all celebrities and 50 random users.
+I used ghz and sent commands to a gRPC API that calls functions to run performance benchmarks. The sign-ups and follow calls work, but it's slow when you have to populate 100K users and 6.7M follows relationships quickly. I used MySQL terminal directly for this. 100K users, 100 celebrities, each user follows 17 celebrities and 50 random users.
