@@ -29,14 +29,14 @@ I spent some time thinking about a new solution: Instead of Paxos, why not just 
 
 Hybrid achieves **76.9%** of optimal read performance, where % = (hybrid − worst) / (optimal − worst).
 
-Hybrid does **23%** of full fan-out's delivery work: 500K mailbox writes instead of 2.2M.
+Hybrid does **22.7%** of full fan-out's delivery work: 500K mailbox writes instead of 2.2M.
 
 | Kafka consumers | Delivery throughput |
 |---|---|
 | 1 | 599 tweets/s |
 | 4 | 1,970 tweets/s (**3.3x**) |
 
-Added a secondary index to cut p99 follower-fetch latency from 3.83 s to 132 ms (29x), and denormalized the schema with a column for follower count to cut p99 popularity-check latency from 26.8 ms to 14.7 ms (1.8x).
+Added a secondary index to cut p99 follower-fetch latency from 11.84 s to 250.65 ms (47x), and denormalized the schema with a column for follower count to cut p99 popularity-check latency from 94.54 ms to 8.54 ms (11x).
 
 ---
 
