@@ -23,14 +23,12 @@ I spent some time thinking about a new solution: Instead of Paxos, why not just 
 
 | Strategy | Feed fetch p99 | Delivery p99 |
 |---|---|---|
-| Fan out to everyone | 18.90 ms | 71.13 ms |
+| Fan out to everyone | 18.90 ms | 17,590.90 ms |
 | Fan out to nobody | 199.64 ms | 0 ms |
-| **Hybrid** | **65.76 ms** | **6.69 ms** |
+| **Hybrid** | **65.76 ms** | **6,445.38 ms** |
 
-Hybrid achieves **74.1%** of optimal read and **90.6%** of optimal write performance,
+Hybrid achieves **74.1%** of optimal read and **63.4%** of optimal write performance,
 where % = (hybrid − worst) / (optimal − worst).
-
-Measured at 10K users:
 
 | Kafka consumers | Delivery throughput |
 |---|---|
