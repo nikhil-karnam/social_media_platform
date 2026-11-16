@@ -23,17 +23,17 @@ I spent some time thinking about a new solution: Instead of Paxos, why not just 
 
 | Strategy | Feed fetch p99 | Delivery p99 |
 |---|---|---|
-| Fan out to everyone | 18.90 ms | 17,590.90 ms |
-| Fan out to nobody | 199.64 ms | 0 ms |
-| **Hybrid** | **65.76 ms** | **6,445.38 ms** |
+| Fan out to everyone | 17.84 ms | 14,534.60 ms |
+| Fan out to nobody | 185.16 ms | 0 ms |
+| **Hybrid** | **56.54 ms** | **4,715.17 ms** |
 
-Hybrid achieves **74.1%** of optimal read and **63.4%** of optimal write performance,
+Hybrid achieves **76.9%** of optimal read and **67.6%** of optimal write performance,
 where % = (hybrid − worst) / (optimal − worst).
 
 | Kafka consumers | Delivery throughput |
 |---|---|
-| 1 | 249 tweets/s |
-| 4 | 649 tweets/s (**2.6x**) |
+| 1 | 599 tweets/s |
+| 4 | 1,970 tweets/s (**3.3x**) |
 
 Added a secondary index to cut p99 follower-fetch latency from 3.83 s to 132 ms (29x), and denormalized the schema with a column for follower count to cut p99 popularity-check latency from 26.8 ms to 14.7 ms (1.8x).
 
