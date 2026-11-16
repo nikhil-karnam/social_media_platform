@@ -25,10 +25,11 @@ I spent some time thinking about a new solution: Instead of Paxos, why not just 
 |---|---|---|
 | Fan out to everyone | 17.84 ms | 14,534.60 ms |
 | Fan out to nobody | 185.16 ms | 0 ms |
-| **Hybrid** | **56.54 ms** | **4,715.17 ms** |
+| Hybrid | **56.54 ms** | **4,715.17 ms** |
 
-Hybrid achieves **76.9%** of optimal read and **67.6%** of optimal write performance,
-where % = (hybrid − worst) / (optimal − worst).
+Hybrid achieves **76.9%** of optimal read performance, where % = (hybrid − worst) / (optimal − worst).
+
+Hybrid does **23%** of full fan-out's delivery work: 500K mailbox writes instead of 2.2M.
 
 | Kafka consumers | Delivery throughput |
 |---|---|
