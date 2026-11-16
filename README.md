@@ -19,16 +19,18 @@ I spent some time thinking about a new solution: Instead of Paxos, why not just 
 
 ### Results
 
-10K users, 10 celebrities (10K followers each), 1.1M follows. 1,010 tweets per burst.
+100K users, 100 celebrities (17K followers each), 6.66M follows. Each user follows 17 celebrities and about 50 regular users. 10,100 tweets per burst.
 
 | Strategy | Feed fetch p99 | Delivery p99 |
 |---|---|---|
-| Fan out to everyone | 21.21 ms | 30.24 ms |
-| Fan out to nobody | 309.03 ms | 0 ms |
-| **Hybrid** | **56.65 ms** | **5.76 ms** |
+| Fan out to everyone | 18.90 ms | 71.13 ms |
+| Fan out to nobody | 199.64 ms | 0 ms |
+| **Hybrid** | **65.76 ms** | **6.69 ms** |
 
-Hybrid achieves **87.7%** of optimal read and **81.0%** of optimal write performance,
+Hybrid achieves **74.1%** of optimal read and **90.6%** of optimal write performance,
 where % = (hybrid − worst) / (optimal − worst).
+
+Measured at 10K users:
 
 | Kafka consumers | Delivery throughput |
 |---|---|
