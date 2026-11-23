@@ -78,9 +78,9 @@ func SendOutbox() {
 	}
 
 	for {
-		// read all 3 replicas. if a node is down, fall back to the ones that are up
+		// read 2 of 3 replicas. if that fails, fall back to 1
 		iter := connections.Cassandra.Query("SELECT username, posted_at, mail FROM outbox").
-			Consistency(gocql.All).RetryPolicy(connections.Fallback).Iter()
+			Consistency(gocql.Quorum).RetryPolicy(connections.Fallback).Iter()
 
 		// collect everything waiting in the outbox first
 		var msgs []kafka.Message
@@ -175,7 +175,7 @@ func OpenMail(user string) []string {
 		var tweet string
 		var postedAt int64
 		err := connections.Cassandra.Query("SELECT tweet, posted_at FROM posts WHERE username = ? LIMIT 1", celeb).
-			Consistency(gocql.All).RetryPolicy(connections.Fallback).Scan(&tweet, &postedAt)
+			Consistency(gocql.Quorum).RetryPolicy(connections.Fallback).Scan(&tweet, &postedAt)
 		if err == nil {
 			all[fmt.Sprintf("%020d:%s", postedAt, celeb)] = tweet
 		}

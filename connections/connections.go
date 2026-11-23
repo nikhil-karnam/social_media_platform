@@ -36,8 +36,8 @@ func Connect(addrs string) *gocql.Session {
 
 var Cassandra = Connect(os.Getenv("CASSANDRA_ADDRS"))
 
-// read all 3 replicas. if a node is down, fall back to the ones that are up
-var Fallback = &gocql.DowngradingConsistencyRetryPolicy{ConsistencyLevelsToTry: []gocql.Consistency{gocql.Quorum, gocql.One}}
+// read 2 of 3 replicas. if only one is up, fall back to one
+var Fallback = &gocql.DowngradingConsistencyRetryPolicy{ConsistencyLevelsToTry: []gocql.Consistency{gocql.One}}
 
 // connection only to MySQL primary node since that's where writes flow
 var Mysql, _ = sql.Open("mysql", os.Getenv("MYSQL_USER")+":"+os.Getenv("MYSQL_PASSWORD")+"@tcp("+os.Getenv("MYSQL_ADDR")+")/"+os.Getenv("MYSQL_DB"))
