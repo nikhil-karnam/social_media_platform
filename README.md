@@ -45,7 +45,7 @@ Hybrid achieves **100.3%** of optimal read performance, where % = (hybrid − wo
 
 Hybrid's performance is 11.7x better than no caching.
 
-Hybrid does **22.7%** of full fan-out's delivery work: 500K normal posts + 100 celeb posts written to mailbox, instead of all 2.2M posts.
+Hybrid does **22.7%** of fan out everyone's delivery work: 500K normal posts + 100 celeb posts written to mailbox, instead of all 2.2M posts.
 
 | Kafka consumers | Delivery throughput |
 |---|---|
