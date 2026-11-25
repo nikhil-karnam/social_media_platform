@@ -31,7 +31,9 @@ Finally, the dual-write problem was solved to ensure that posts that go to the d
 
 ## Results
 
-100K users, 100 celebrities (17K followers each), 6.7M follows. Each user follows 17 celebrities and about 50 regular users.
+100K users, 100 celebrities.
+
+Each user follows 17 celebrities and about 50 regular users. 6.7M follow relationships in total.
 
 10,000 normal posts + 100 celeb posts tested.
 
