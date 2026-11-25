@@ -11,7 +11,7 @@ Opening feeds can be slow across thousands of users, which requires searching yo
 
 ### Data Structures
 
-The posts are stored on Cassandra, which uses LSM trees under the hood. Why LSM trees? Both a B-tree and LSM tree are special data structures that allow data to persist on disk. However, they both maintain a copy of the latest data in memory. The difference is how the data is stored in disk.
+The posts are stored in Cassandra, which uses LSM trees under the hood. Why LSM trees? Both a B-tree and LSM tree are special data structures that allow data to persist on disk. However, they both maintain a copy of the latest data in memory. The difference is how the data is stored in disk.
 - Writing: The LSM tree is not completely ordered. It is split into chunks called SSTables, and each chunk is ordered. On the other hand, a B-tree is completely ordered. The result is that LSM trees are good at fast writes compared to a B-tree when there is heavy concurrent writing load because under a disk transfer bottleneck, the LSM tree just has to shove the in-memory (memtable) into an SSTable. Done. The B-tree must carefully slot each entry.
 - Reading: B-trees are faster when the goal is to read old data in long stretches because everything is ordered.
 
