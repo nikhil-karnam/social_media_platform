@@ -52,7 +52,7 @@ Hybrid does **22.7%** of fan out everyone's delivery work: 500K normal posts + 1
 | 1 | 599 tweets/s |
 | 4 | 1,970 tweets/s (**3.3x**) |
 
-Added a secondary index to cut p99 follower-fetch latency from 11.84 s to 250.65 ms (47x), and denormalized the schema with a column for follower count to cut p99 popularity-check latency from 94.54 ms to 8.54 ms (11x).
+Secondary index improved p99 follower-fetch latency from 11.84 s to 250.65 ms (47x), and column for follower count improved p99 popularity-check latency from 94.54 ms to 8.54 ms (11x).
 
 ## Setup and Running
 
