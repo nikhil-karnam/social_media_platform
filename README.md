@@ -40,11 +40,11 @@ Finally, the dual-write problem was solved to ensure that posts that get posted 
 
 | Strategy | Feed fetch p99 | Delivery p99 |
 |---|---|---|
-| Fan out to everyone | 17.84 ms | 14,534.60 ms |
-| Fan out to nobody | 185.16 ms | 0 ms |
-| Hybrid | **56.54 ms** | **4,715.17 ms** |
+| Fan out to everyone | 17.50 ms | 11,308.30 ms |
+| Fan out to nobody | 198.24 ms | 0 ms |
+| Hybrid | **17.00 ms** | **4,345.29 ms** |
 
-Hybrid achieves **76.9%** of optimal read performance, where % = (hybrid − worst) / (optimal − worst).
+Hybrid achieves **100.3%** of optimal read performance, where % = (hybrid − worst) / (optimal − worst).
 
 Hybrid does **22.7%** of full fan-out's delivery work: 500K mailbox writes instead of 2.2M.
 
