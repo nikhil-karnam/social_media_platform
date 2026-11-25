@@ -58,7 +58,7 @@ Secondary index improved p99 follower-fetch latency from 11.84 s to 250.65 ms (4
 
 Column for follower count improved p99 popularity-check latency from 94.54 ms to 8.54 ms (11x).
 
-## Setup and Running
+## To Setup and Run
 
 On Linux, install [Go](https://go.dev/dl/), Java 17 (through your package manager, e.g. `sudo apt install openjdk-17-jdk-headless`), [Redis](https://redis.io/downloads/), [MySQL 8.4](https://dev.mysql.com/downloads/mysql/), [Kafka 4.3](https://kafka.apache.org/downloads), and [Cassandra 5.0](https://cassandra.apache.org/_/download.html) with their `bin` folders on your `PATH`. Then run `./start.sh` from the project folder.
 
