@@ -40,13 +40,15 @@ Finally, the dual-write problem was solved to ensure that posts that get posted 
 
 10,000 normal posts + 100 celeb posts tested.
 
-| Strategy | Feed fetch p99 | Delivery p99 |
+| Strategy | Feed-Fetch p99 | Delivery p99 |
 |---|---|---|
 | Fan Out to Everyone | 17.50 ms | 11,308.30 ms |
 | No Caching | 198.24 ms | 0 ms |
 | Fan Out Only Normal Posts (Hybrid) | 17.00 ms | 4,345.29 ms |
 
 Hybrid achieves **100.3%** of optimal read performance, where % = (hybrid − worst) / (fan out to everyone − worst).
+
+Hybrid's performance is 11.7x better than no caching.
 
 Hybrid does **22.7%** of full fan-out's delivery work: 500K normal posts + 100 celeb posts written to mailbox, instead of all 2.2M posts.
 
