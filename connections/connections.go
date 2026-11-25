@@ -24,6 +24,7 @@ type Mail struct {
 
 // don't spam retry when redis is clearly down
 var Redis = redis.NewClient(&redis.Options{Addr: os.Getenv("REDIS_ADDR"), MaxRetries: -1})
+var CelebRedis = redis.NewClient(&redis.Options{Addr: os.Getenv("CELEB_REDIS_ADDR"), MaxRetries: -1})
 
 // connection to cassandra nodes
 func Connect(addrs string) *gocql.Session {
@@ -37,7 +38,7 @@ func Connect(addrs string) *gocql.Session {
 var Cassandra = Connect(os.Getenv("CASSANDRA_ADDRS"))
 
 // read 2 of 3 replicas. if only one is up, fall back to one
-var Fallback = &gocql.DowngradingConsistencyRetryPolicy{ConsistencyLevelsToTry: []gocql.Consistency{gocql.One}}
+var Fallback = &gocql.DowngradingConsistencyRetryPolicy{ConsistencyLevelsToTry: []gocql.Consistency{gocql.Quorum, gocql.One}}
 
 // connection only to MySQL primary node since that's where writes flow
 var Mysql, _ = sql.Open("mysql", os.Getenv("MYSQL_USER")+":"+os.Getenv("MYSQL_PASSWORD")+"@tcp("+os.Getenv("MYSQL_ADDR")+")/"+os.Getenv("MYSQL_DB"))

@@ -13,3 +13,10 @@ CREATE TABLE IF NOT EXISTS tweets.outbox (
   mail text,
   PRIMARY KEY (username, posted_at)
 ) WITH gc_grace_seconds = 3600;
+
+CREATE TABLE IF NOT EXISTS tweets.celeb_outbox (
+  username text,
+  posted_at bigint,
+  mail text,
+  PRIMARY KEY (username, posted_at)
+) WITH gc_grace_seconds = 3600;

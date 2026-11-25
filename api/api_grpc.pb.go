@@ -8,7 +8,6 @@ package api
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -20,14 +19,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Api_Signup_FullMethodName           = "/api.Api/Signup"
-	Api_Follow_FullMethodName           = "/api.Api/Follow"
-	Api_SetThreshold_FullMethodName     = "/api.Api/SetThreshold"
-	Api_SequentialTweet_FullMethodName  = "/api.Api/SequentialTweet"
-	Api_BurstTweet_FullMethodName       = "/api.Api/BurstTweet"
-	Api_OpenMail_FullMethodName         = "/api.Api/OpenMail"
-	Api_GetFollowers_FullMethodName     = "/api.Api/GetFollowers"
-	Api_GetFollowerCount_FullMethodName = "/api.Api/GetFollowerCount"
+	Api_Signup_FullMethodName               = "/api.Api/Signup"
+	Api_Follow_FullMethodName               = "/api.Api/Follow"
+	Api_SetCelebThreshold_FullMethodName    = "/api.Api/SetCelebThreshold"
+	Api_BurstTweet_FullMethodName           = "/api.Api/BurstTweet"
+	Api_OpenMail_FullMethodName             = "/api.Api/OpenMail"
+	Api_DumpsterfireOpenMail_FullMethodName = "/api.Api/DumpsterfireOpenMail"
 )
 
 // ApiClient is the client API for Api service.
@@ -36,12 +33,10 @@ const (
 type ApiClient interface {
 	Signup(ctx context.Context, in *Accounts, opts ...grpc.CallOption) (*Empty, error)
 	Follow(ctx context.Context, in *Follows, opts ...grpc.CallOption) (*Empty, error)
-	SetThreshold(ctx context.Context, in *Threshold, opts ...grpc.CallOption) (*Empty, error)
-	SequentialTweet(ctx context.Context, in *Tweets, opts ...grpc.CallOption) (*Empty, error)
+	SetCelebThreshold(ctx context.Context, in *Threshold, opts ...grpc.CallOption) (*Empty, error)
 	BurstTweet(ctx context.Context, in *Tweets, opts ...grpc.CallOption) (*Empty, error)
 	OpenMail(ctx context.Context, in *Username, opts ...grpc.CallOption) (*Timeline, error)
-	GetFollowers(ctx context.Context, in *Username, opts ...grpc.CallOption) (*Followers, error)
-	GetFollowerCount(ctx context.Context, in *Username, opts ...grpc.CallOption) (*FollowerCount, error)
+	DumpsterfireOpenMail(ctx context.Context, in *Username, opts ...grpc.CallOption) (*Timeline, error)
 }
 
 type apiClient struct {
@@ -72,20 +67,10 @@ func (c *apiClient) Follow(ctx context.Context, in *Follows, opts ...grpc.CallOp
 	return out, nil
 }
 
-func (c *apiClient) SetThreshold(ctx context.Context, in *Threshold, opts ...grpc.CallOption) (*Empty, error) {
+func (c *apiClient) SetCelebThreshold(ctx context.Context, in *Threshold, opts ...grpc.CallOption) (*Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Empty)
-	err := c.cc.Invoke(ctx, Api_SetThreshold_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *apiClient) SequentialTweet(ctx context.Context, in *Tweets, opts ...grpc.CallOption) (*Empty, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Empty)
-	err := c.cc.Invoke(ctx, Api_SequentialTweet_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Api_SetCelebThreshold_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -112,20 +97,10 @@ func (c *apiClient) OpenMail(ctx context.Context, in *Username, opts ...grpc.Cal
 	return out, nil
 }
 
-func (c *apiClient) GetFollowers(ctx context.Context, in *Username, opts ...grpc.CallOption) (*Followers, error) {
+func (c *apiClient) DumpsterfireOpenMail(ctx context.Context, in *Username, opts ...grpc.CallOption) (*Timeline, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Followers)
-	err := c.cc.Invoke(ctx, Api_GetFollowers_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *apiClient) GetFollowerCount(ctx context.Context, in *Username, opts ...grpc.CallOption) (*FollowerCount, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(FollowerCount)
-	err := c.cc.Invoke(ctx, Api_GetFollowerCount_FullMethodName, in, out, cOpts...)
+	out := new(Timeline)
+	err := c.cc.Invoke(ctx, Api_DumpsterfireOpenMail_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -138,12 +113,10 @@ func (c *apiClient) GetFollowerCount(ctx context.Context, in *Username, opts ...
 type ApiServer interface {
 	Signup(context.Context, *Accounts) (*Empty, error)
 	Follow(context.Context, *Follows) (*Empty, error)
-	SetThreshold(context.Context, *Threshold) (*Empty, error)
-	SequentialTweet(context.Context, *Tweets) (*Empty, error)
+	SetCelebThreshold(context.Context, *Threshold) (*Empty, error)
 	BurstTweet(context.Context, *Tweets) (*Empty, error)
 	OpenMail(context.Context, *Username) (*Timeline, error)
-	GetFollowers(context.Context, *Username) (*Followers, error)
-	GetFollowerCount(context.Context, *Username) (*FollowerCount, error)
+	DumpsterfireOpenMail(context.Context, *Username) (*Timeline, error)
 	mustEmbedUnimplementedApiServer()
 }
 
@@ -160,11 +133,8 @@ func (UnimplementedApiServer) Signup(context.Context, *Accounts) (*Empty, error)
 func (UnimplementedApiServer) Follow(context.Context, *Follows) (*Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method Follow not implemented")
 }
-func (UnimplementedApiServer) SetThreshold(context.Context, *Threshold) (*Empty, error) {
-	return nil, status.Error(codes.Unimplemented, "method SetThreshold not implemented")
-}
-func (UnimplementedApiServer) SequentialTweet(context.Context, *Tweets) (*Empty, error) {
-	return nil, status.Error(codes.Unimplemented, "method SequentialTweet not implemented")
+func (UnimplementedApiServer) SetCelebThreshold(context.Context, *Threshold) (*Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetCelebThreshold not implemented")
 }
 func (UnimplementedApiServer) BurstTweet(context.Context, *Tweets) (*Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method BurstTweet not implemented")
@@ -172,11 +142,8 @@ func (UnimplementedApiServer) BurstTweet(context.Context, *Tweets) (*Empty, erro
 func (UnimplementedApiServer) OpenMail(context.Context, *Username) (*Timeline, error) {
 	return nil, status.Error(codes.Unimplemented, "method OpenMail not implemented")
 }
-func (UnimplementedApiServer) GetFollowers(context.Context, *Username) (*Followers, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetFollowers not implemented")
-}
-func (UnimplementedApiServer) GetFollowerCount(context.Context, *Username) (*FollowerCount, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetFollowerCount not implemented")
+func (UnimplementedApiServer) DumpsterfireOpenMail(context.Context, *Username) (*Timeline, error) {
+	return nil, status.Error(codes.Unimplemented, "method DumpsterfireOpenMail not implemented")
 }
 func (UnimplementedApiServer) mustEmbedUnimplementedApiServer() {}
 func (UnimplementedApiServer) testEmbeddedByValue()             {}
@@ -235,38 +202,20 @@ func _Api_Follow_Handler(srv interface{}, ctx context.Context, dec func(interfac
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Api_SetThreshold_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Api_SetCelebThreshold_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Threshold)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ApiServer).SetThreshold(ctx, in)
+		return srv.(ApiServer).SetCelebThreshold(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Api_SetThreshold_FullMethodName,
+		FullMethod: Api_SetCelebThreshold_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ApiServer).SetThreshold(ctx, req.(*Threshold))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Api_SequentialTweet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Tweets)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ApiServer).SequentialTweet(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: Api_SequentialTweet_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ApiServer).SequentialTweet(ctx, req.(*Tweets))
+		return srv.(ApiServer).SetCelebThreshold(ctx, req.(*Threshold))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -307,38 +256,20 @@ func _Api_OpenMail_Handler(srv interface{}, ctx context.Context, dec func(interf
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Api_GetFollowers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Api_DumpsterfireOpenMail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Username)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ApiServer).GetFollowers(ctx, in)
+		return srv.(ApiServer).DumpsterfireOpenMail(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Api_GetFollowers_FullMethodName,
+		FullMethod: Api_DumpsterfireOpenMail_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ApiServer).GetFollowers(ctx, req.(*Username))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Api_GetFollowerCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Username)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ApiServer).GetFollowerCount(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: Api_GetFollowerCount_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ApiServer).GetFollowerCount(ctx, req.(*Username))
+		return srv.(ApiServer).DumpsterfireOpenMail(ctx, req.(*Username))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -359,12 +290,8 @@ var Api_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Api_Follow_Handler,
 		},
 		{
-			MethodName: "SetThreshold",
-			Handler:    _Api_SetThreshold_Handler,
-		},
-		{
-			MethodName: "SequentialTweet",
-			Handler:    _Api_SequentialTweet_Handler,
+			MethodName: "SetCelebThreshold",
+			Handler:    _Api_SetCelebThreshold_Handler,
 		},
 		{
 			MethodName: "BurstTweet",
@@ -375,12 +302,8 @@ var Api_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Api_OpenMail_Handler,
 		},
 		{
-			MethodName: "GetFollowers",
-			Handler:    _Api_GetFollowers_Handler,
-		},
-		{
-			MethodName: "GetFollowerCount",
-			Handler:    _Api_GetFollowerCount_Handler,
+			MethodName: "DumpsterfireOpenMail",
+			Handler:    _Api_DumpsterfireOpenMail_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

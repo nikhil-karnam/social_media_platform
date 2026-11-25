@@ -10,4 +10,5 @@ export KAFKA_ADDRS=127.0.0.1:9092
 export KAFKA_TOPIC=fanout
 export KAFKA_GROUP=fanout-consumers
 export REDIS_ADDR=127.0.0.1:6379
+export CELEB_REDIS_ADDR=127.0.0.1:6380
 export LANES=4

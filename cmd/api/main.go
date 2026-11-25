@@ -27,15 +27,9 @@ func (s *server) Follow(ctx context.Context, req *pb.Follows) (*pb.Empty, error)
 	return &pb.Empty{}, nil
 }
 
-func (s *server) SetThreshold(ctx context.Context, req *pb.Threshold) (*pb.Empty, error) {
+// for determining who is celeb
+func (s *server) SetCelebThreshold(ctx context.Context, req *pb.Threshold) (*pb.Empty, error) {
 	functionality.CelebThreshold = int(req.Value)
-	return &pb.Empty{}, nil
-}
-
-func (s *server) SequentialTweet(ctx context.Context, req *pb.Tweets) (*pb.Empty, error) {
-	for i := range req.Users {
-		functionality.Tweet(req.Users[i], req.Tweets[i])
-	}
 	return &pb.Empty{}, nil
 }
 
@@ -53,16 +47,13 @@ func (s *server) OpenMail(ctx context.Context, req *pb.Username) (*pb.Timeline, 
 	return &pb.Timeline{Tweets: functionality.OpenMail(req.User)}, nil
 }
 
-func (s *server) GetFollowers(ctx context.Context, req *pb.Username) (*pb.Followers, error) {
-	return &pb.Followers{Users: functionality.GetFollowers(req.User)}, nil
-}
-
-func (s *server) GetFollowerCount(ctx context.Context, req *pb.Username) (*pb.FollowerCount, error) {
-	return &pb.FollowerCount{Count: int64(functionality.GetFollowerCount(req.User))}, nil
+func (s *server) DumpsterfireOpenMail(ctx context.Context, req *pb.Username) (*pb.Timeline, error) {
+	return &pb.Timeline{Tweets: functionality.DumpsterfireOpenMail(req.User)}, nil
 }
 
 func main() {
 	go functionality.SendOutbox()
+	go functionality.SendCelebOutbox()
 
 	lis, _ := net.Listen("tcp", os.Getenv("API_ADDR"))
 	s := grpc.NewServer()

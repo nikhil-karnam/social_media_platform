@@ -9,6 +9,9 @@ port() { echo "${1##*:}"; }
 if ! redis-cli -p "$(port "$REDIS_ADDR")" ping > /dev/null 2>&1; then
   redis-server --port "$(port "$REDIS_ADDR")" --daemonize yes
 fi
+if ! redis-cli -p "$(port "$CELEB_REDIS_ADDR")" ping > /dev/null 2>&1; then
+  redis-server --port "$(port "$CELEB_REDIS_ADDR")" --daemonize yes
+fi
 
 # 2. cassandra data folders
 mkdir -p data/cassandra1 data/cassandra2 data/cassandra3

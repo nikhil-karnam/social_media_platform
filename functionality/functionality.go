@@ -62,34 +62,33 @@ func Tweet(user, tweet string) {
 
 	// save the tweet and its outbox mail in one batch: either both land or neither does
 	batch := connections.Cassandra.NewBatch(gocql.LoggedBatch)
+
 	batch.Query("INSERT INTO posts (username, posted_at, tweet) VALUES (?, ?, ?)", user, now, tweet)
+	mail, _ := json.Marshal(connections.Mail{User: user, Tweet: tweet, Time: now})
 	if !IsCeleb(user) {
-		mail, _ := json.Marshal(connections.Mail{User: user, Tweet: tweet, Time: now})
 		batch.Query("INSERT INTO outbox (username, posted_at, mail) VALUES (?, ?, ?)", user, now, string(mail))
+	} else {
+		batch.Query("INSERT INTO celeb_outbox (username, posted_at, mail) VALUES (?, ?, ?)", user, now, string(mail))
 	}
+
 	connections.Cassandra.ExecuteBatch(batch)
 }
 
 // sending outbox to kafka
 func SendOutbox() {
-	type row struct {
-		user     string
-		postedAt int64
-	}
-
 	for {
-		// read 2 of 3 replicas. if that fails, fall back to 1
+		// read all 3 replicas. if that fails, fall back to 2, then 1
 		iter := connections.Cassandra.Query("SELECT username, posted_at, mail FROM outbox").
-			Consistency(gocql.Quorum).RetryPolicy(connections.Fallback).Iter()
+			Consistency(gocql.All).RetryPolicy(connections.Fallback).Iter()
 
 		// collect everything waiting in the outbox first
 		var msgs []kafka.Message
-		var rows []row
+		var rows [][]any
 		var user, mail string
 		var postedAt int64
 		for iter.Scan(&user, &postedAt, &mail) {
 			msgs = append(msgs, kafka.Message{Key: []byte(user), Value: []byte(mail)})
-			rows = append(rows, row{user, postedAt})
+			rows = append(rows, []any{user, postedAt})
 		}
 		iter.Close()
 
@@ -99,7 +98,40 @@ func SendOutbox() {
 			var wg sync.WaitGroup
 			for _, r := range rows {
 				wg.Go(func() {
-					connections.Cassandra.Query("DELETE FROM outbox WHERE username = ? AND posted_at = ?", r.user, r.postedAt).Exec()
+					connections.Cassandra.Query("DELETE FROM outbox WHERE username = ? AND posted_at = ?", r...).Exec()
+				})
+			}
+			wg.Wait()
+		}
+
+		time.Sleep(10 * time.Second)
+	}
+}
+
+// saving each celebrity's newest post to redis
+func SendCelebOutbox() {
+	for {
+		// read all 3 replicas. if that fails, fall back to 2, then 1
+		iter := connections.Cassandra.Query("SELECT username, posted_at, mail FROM celeb_outbox").
+			Consistency(gocql.All).RetryPolicy(connections.Fallback).Iter()
+
+		var pairs []any
+		var rows [][]any
+		var user, mail string
+		var postedAt int64
+		for iter.Scan(&user, &postedAt, &mail) {
+			pairs = append(pairs, user, mail)
+			rows = append(rows, []any{user, postedAt})
+		}
+		iter.Close()
+
+		// send everything in one go. if redis fails, the mail stays in the outbox and gets retried next loop
+		if len(pairs) > 0 && connections.CelebRedis.MSet(connections.Ctx, pairs...).Err() == nil {
+			// redis confirmed it all, so delete those rows from the outbox all at once
+			var wg sync.WaitGroup
+			for _, r := range rows {
+				wg.Go(func() {
+					connections.Cassandra.Query("DELETE FROM celeb_outbox WHERE username = ? AND posted_at = ?", r...).Exec()
 				})
 			}
 			wg.Wait()
@@ -144,6 +176,19 @@ func GetFollowers(user string) []string {
 	return followers
 }
 
+// get all* follows
+func GetFollows(user string) []string {
+	rows, _ := connections.Mysql.Query("SELECT target FROM follows WHERE user = ?", user)
+	var follows []string
+	for rows.Next() {
+		var target string
+		rows.Scan(&target)
+		follows = append(follows, target)
+	}
+	rows.Close()
+	return follows
+}
+
 func GetCelebFollows(user string) []string {
 	rows, _ := connections.Mysql.Query("SELECT f.target FROM follows f JOIN users u ON u.username = f.target WHERE f.user = ? AND u.follower_count >= ?", user, CelebThreshold)
 	var celebs []string
@@ -171,13 +216,41 @@ func OpenMail(user string) []string {
 		all[fmt.Sprintf("%020d:%s", mail.Time, mail.User)] = mail.Tweet
 	}
 
-	for _, celeb := range GetCelebFollows(user) {
+	posts, _ := connections.CelebRedis.MGet(connections.Ctx, GetCelebFollows(user)...).Result()
+	for _, p := range posts {
+		if p != nil {
+			var mail connections.Mail
+			json.Unmarshal([]byte(p.(string)), &mail)
+			all[fmt.Sprintf("%020d:%s", mail.Time, mail.User)] = mail.Tweet
+		}
+	}
+
+	var feed []string
+	for _, k := range slices.Backward(slices.Sorted(maps.Keys(all))) {
+		if len(feed) == 20 {
+			break
+		}
+		nanos, _ := strconv.ParseInt(k[:20], 10, 64)
+		feed = append(feed, time.Unix(0, nanos).Format("15:04")+" "+k[21:]+": "+all[k])
+	}
+	return feed
+}
+
+// reads every followed user's latest post straight from cassandra. no mailbox, no cache
+func DumpsterfireOpenMail(user string) []string {
+	if !UserExists(user) {
+		return nil
+	}
+
+	all := map[string]string{}
+
+	for _, target := range GetFollows(user) {
 		var tweet string
 		var postedAt int64
-		err := connections.Cassandra.Query("SELECT tweet, posted_at FROM posts WHERE username = ? LIMIT 1", celeb).
+		err := connections.Cassandra.Query("SELECT tweet, posted_at FROM posts WHERE username = ? LIMIT 1", target).
 			Consistency(gocql.Quorum).RetryPolicy(connections.Fallback).Scan(&tweet, &postedAt)
 		if err == nil {
-			all[fmt.Sprintf("%020d:%s", postedAt, celeb)] = tweet
+			all[fmt.Sprintf("%020d:%s", postedAt, target)] = tweet
 		}
 	}
 

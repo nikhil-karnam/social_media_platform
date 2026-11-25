@@ -31,5 +31,6 @@ while pgrep -f CassandraDaemon > /dev/null; do sleep 1; done
 
 # redis
 redis-cli -p "$(echo "${REDIS_ADDR##*:}")" shutdown > /dev/null 2>&1
+redis-cli -p "$(echo "${CELEB_REDIS_ADDR##*:}")" shutdown > /dev/null 2>&1
 
 echo "stop complete!"
