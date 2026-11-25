@@ -17,7 +17,7 @@ The posts are stored in Cassandra, which uses LSM trees under the hood. Why LSM 
 
 Think about our use case: We want to ensure fast writes for users (posting). Furthermore, feed loading fetches a single latest post for a celebrity, so the post is more likely to exist in RAM where reading bottlenecks go away. when looking up a specific profile to fetch old posts, the B-Tree would be faster, but this use case does not occur very frequently. This is why I think the LSM tree is a better choice here than the B-tree. The Kafka-style append only log is the worst option because the keys aren't sorted at all.
 
-User data—accounts and follow relationships—are stored in MySQL. This one uses B-trees under the hood. We want reads to be fast because people login more often (including refresh tokens) than they do signing up, and every Kafka feed delivery must fetch the list of followers from MySQL, which is more reading. I used a secondary index to find followers by the user quickly, at the cost of more storage (creates another B-tree) and write time.
+User data—accounts and follow relationships—are stored in MySQL. This one uses B-trees under the hood. We want reads to be fast because people login more often (including refresh tokens) than they do signing up, and every Kafka feed delivery must fetch the list of followers from MySQL, which is more reading. I used a secondary index to find followers by the user quickly, at the cost of more storage (creates another B-tree) and write time. I also added a separate column for follower count to quickly check if someone is a celebrity to decide delivery behavior.
 
 ---
 
