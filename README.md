@@ -49,7 +49,7 @@ Hybrid's performance is 11.7x better than no caching.
 
 Hybrid does **22.7%** of fan out everyone's delivery work: 500K normal posts + 100 celeb posts written to mailbox, instead of all 2.2M posts.
 
-| Kafka consumers | Delivery throughput |
+| Kafka Consumers | Cache-Delivery Throughput |
 |---|---|
 | 1 | 599 tweets/s |
 | 4 | 1,970 tweets/s (**3.3x**) |
