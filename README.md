@@ -37,11 +37,11 @@ Finally, the dual-write problem was solved to ensure that posts that go to the d
 
 | Strategy | Feed-Fetch p99 | Delivery p99 |
 |---|---|---|
-| Fan Out Everyone | 17.50 ms | 11,308.30 ms |
+| Fan Out Everyone's | 17.50 ms | 11,308.30 ms |
 | No Caching | 198.24 ms | 0 ms |
 | Fan Out Only Normal Posts (Hybrid) | 17.00 ms | 4,345.29 ms |
 
-Hybrid achieves **100.3%** of optimal read performance, where % = (hybrid − worst) / (fan out everyone − worst).
+Hybrid achieves **100.3%** of optimal read performance, where % = (hybrid − worst) / (fan out everyone's − worst).
 
 Hybrid's performance is 11.7x better than no caching.
 
