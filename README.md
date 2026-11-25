@@ -1,4 +1,3 @@
-## Social Media Posting
 Written in Go with hybrid fan-out caching (Redis), replicated storage (Cassandra and MySQL), cache delivery throughput with Kafka, and a solution to the dual-write problem with no loss nor duplicates. Inspired by Twitter's architecture.
 
 ## Caching
